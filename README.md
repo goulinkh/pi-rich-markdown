@@ -85,6 +85,10 @@ This extension routes every image through one store, pi's own included
 - The total stays under a budget. When a new image would go over, the
   oldest images are deleted and turn blank in the scrollback.
 
+In fullscreen mode every image is also registered with pi, so pi keeps it
+inside the transcript: cropped where the transcript ends instead of drawn
+over the editor, and re-placed rather than re-sent on each repaint.
+
 | Environment variable | Default | Meaning |
 |---|---:|---|
 | `PI_RICH_MARKDOWN_IMAGE_BUDGET_MB` | 32 | Total decoded image memory |

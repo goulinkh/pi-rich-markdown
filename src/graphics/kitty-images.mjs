@@ -142,11 +142,14 @@ function defaultAllocateId(live) {
  * image of that size yet and must return Pixels matching the plan.
  */
 export class KittyImageStore {
-  constructor({ budgetBytes = DEFAULTS.budgetBytes, maxImageBytes = DEFAULTS.maxImageBytes, allocateId, onTransmit } = {}) {
+  constructor({ budgetBytes = DEFAULTS.budgetBytes, maxImageBytes = DEFAULTS.maxImageBytes, allocateId, onTransmit, onDelete } = {}) {
     this.budgetBytes = budgetBytes;
     this.maxImageBytes = Math.min(maxImageBytes, budgetBytes);
     this.allocateId = allocateId ?? (() => defaultAllocateId(this.liveIds));
+    /** Called with {imageId, columns, rows, widthPx, heightPx} for each new image. */
     this.onTransmit = onTransmit;
+    /** Called with the same object when an image is deleted to stay in budget. */
+    this.onDelete = onDelete;
     /** owner -> { id, bytes, size, sequence }, least recently used first. */
     this.live = new Map();
     this.liveIds = new Set();
@@ -161,6 +164,7 @@ export class KittyImageStore {
     this.live.delete(owner);
     this.liveIds.delete(entry.id);
     this.totalBytes -= entry.bytes;
+    this.onDelete?.(entry.meta);
     return deleteImage(entry.id);
   }
 
@@ -195,10 +199,11 @@ export class KittyImageStore {
     // Deletions go after the image: pi-tui reads the first Kitty command of a
     // line as the line's image, and repeating them later is harmless.
     const sequence = encodeKittyPixels(pixels, { id, columns: plan.columns, rows: plan.rows }) + deletions;
-    this.live.set(owner, { id, bytes, size, sequence });
+    const meta = { imageId: id, columns: plan.columns, rows: plan.rows, widthPx: plan.widthPx, heightPx: plan.heightPx };
+    this.live.set(owner, { id, bytes, size, sequence, meta });
     this.liveIds.add(id);
     this.totalBytes += bytes;
-    this.onTransmit?.({ imageId: id, columns: plan.columns, rows: plan.rows, widthPx: plan.widthPx, heightPx: plan.heightPx });
+    this.onTransmit?.(meta);
     return sequence;
   }
 }

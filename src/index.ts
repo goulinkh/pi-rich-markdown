@@ -3,6 +3,7 @@ import type { ExtensionAPI, ExtensionUIContext } from "@earendil-works/pi-coding
 import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import * as tui from "@earendil-works/pi-tui";
 import { limitsFromEnv, sharedImageStore } from "./graphics/kitty-images.mjs";
+import { piImageRegistrar } from "./graphics/pi-registry.mjs";
 import { installImageBudget } from "./graphics/pi-images.mjs";
 import { cellDimensionsSource } from "./graphics/cells.mjs";
 import { installMarkdownRenderer } from "./markdown/install.mjs";
@@ -32,6 +33,12 @@ export default function richMarkdown(pi: ExtensionAPI) {
   const shared = globalThis as { [CELLS]?: () => { widthPx: number; heightPx: number } };
   const getCellDimensions = (shared[CELLS] ??= cellDimensionsSource(tui));
   installImageBudget({ tui, store, limits, getCellDimensions });
+  // Fullscreen pi crops and re-places only images it knows: register ours, and
+  // re-register deleted ones so pi sends their data again instead of a bare
+  // placement. Assigned on every load: the store outlives /reload.
+  const register = piImageRegistrar(tui);
+  store.onTransmit = register;
+  store.onDelete = register;
 
   let ui: ExtensionUIContext | undefined;
   let warned = false;
