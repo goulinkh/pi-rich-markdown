@@ -110,6 +110,8 @@ This extension routes every image through one store, pi's own included
 In fullscreen mode every image is also registered with pi, so pi keeps it
 inside the transcript: cropped where the transcript ends instead of drawn
 over the editor, and re-placed rather than re-sent on each repaint.
+Dialogs such as `/btw` draw over images: while one is open, an image it
+covers is cut around it.
 
 | Environment variable | Default | Meaning |
 |---|---:|---|
@@ -123,8 +125,9 @@ pi has no API for replacing its Markdown renderer; its Markdown transformer
 hook can only rewrite the text before pi draws it. Extensions share pi's
 `@earendil-works/pi-tui` module, so this extension replaces
 `Markdown.prototype.renderToken`, `Markdown.prototype.renderInlineTokens`
-(icons), `Image.prototype.render` and
-`TuiAltScreen.prototype.getActiveSelectionText` (copying) directly.
+(icons), `Image.prototype.render`,
+`TuiAltScreen.prototype.getActiveSelectionText` (copying) and pi's
+`compositeOverlays` (dialogs over images) directly.
 That reaches every Markdown surface: assistant and user messages, thinking,
 summaries.
 

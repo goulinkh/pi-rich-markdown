@@ -4,6 +4,7 @@ import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import * as tui from "@earendil-works/pi-tui";
 import { limitsFromEnv, sharedImageStore } from "./graphics/kitty-images.mjs";
 import { piImageRegistrar } from "./graphics/pi-registry.mjs";
+import { installOverlayImageClip } from "./graphics/overlays.mjs";
 import { installImageBudget } from "./graphics/pi-images.mjs";
 import { cellDimensionsSource } from "./graphics/cells.mjs";
 import { installMarkdownRenderer } from "./markdown/install.mjs";
@@ -41,6 +42,12 @@ export default function richMarkdown(pi: ExtensionAPI) {
   const register = piImageRegistrar(tui);
   store.onTransmit = register;
   store.onDelete = register;
+  // Overlays (/btw, selectors) draw over images instead of under them.
+  try {
+    installOverlayImageClip({ tui });
+  } catch (error) {
+    pi.on("session_start", (_event, ctx) => ctx.ui.notify(String(error), "warning"));
+  }
 
   let ui: ExtensionUIContext | undefined;
   let warned = false;
