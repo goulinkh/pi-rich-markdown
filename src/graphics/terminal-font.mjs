@@ -6,7 +6,7 @@
 // PI_RICH_MARKDOWN_FONT overrides the family on any terminal.
 
 import { execFileSync } from "node:child_process";
-import { closeSync, openSync, readdirSync, readSync, statSync } from "node:fs";
+import { closeSync, openSync, readFileSync, readdirSync, readSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { extname, join } from "node:path";
 
@@ -58,6 +58,46 @@ function listFonts(dir, depth = 0) {
     if (e.isDirectory()) return depth < 3 ? listFonts(path, depth + 1) : [];
     return FONT_EXT.has(extname(e.name).toLowerCase()) ? [path] : [];
   });
+}
+
+/**
+ * Code points a font file can draw: the union of its cmap format 4 (BMP) and
+ * format 12 (full Unicode) subtables, first face only for collections.
+ * Empty when the file cannot be read.
+ */
+export function fontCoverage(path) {
+  const covered = new Set();
+  let b;
+  try {
+    b = readFileSync(path);
+    const face = b.toString("latin1", 0, 4) === "ttcf" ? b.readUInt32BE(12) : 0;
+    let cmap;
+    for (let i = 0, n = b.readUInt16BE(face + 4); i < n; i++) {
+      const t = face + 12 + i * 16;
+      if (b.toString("latin1", t, t + 4) === "cmap") cmap = b.readUInt32BE(t + 8);
+    }
+    if (cmap === undefined) return covered;
+    for (let i = 0, n = b.readUInt16BE(cmap + 2); i < n; i++) {
+      const off = cmap + b.readUInt32BE(cmap + 4 + i * 8 + 4);
+      const format = b.readUInt16BE(off);
+      if (format === 12) {
+        for (let g = 0, groups = b.readUInt32BE(off + 12); g < groups; g++) {
+          const p = off + 16 + g * 12;
+          for (let cp = b.readUInt32BE(p), end = b.readUInt32BE(p + 4); cp <= end; cp++) covered.add(cp);
+        }
+      } else if (format === 4) {
+        const segments = b.readUInt16BE(off + 6) / 2;
+        for (let s = 0; s < segments; s++) {
+          const end = b.readUInt16BE(off + 14 + s * 2);
+          const start = b.readUInt16BE(off + 16 + segments * 2 + s * 2);
+          for (let cp = start; cp <= end && cp !== 0xffff; cp++) covered.add(cp);
+        }
+      }
+    }
+  } catch {
+    // Unreadable or truncated: whatever was collected so far.
+  }
+  return covered;
 }
 
 /** Family names (name IDs 1 and 16) of every face in a TTF, OTF or TTC file. */

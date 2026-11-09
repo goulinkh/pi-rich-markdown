@@ -91,6 +91,16 @@ A block without a language has no label.
 - [x] Code panels
 - [ ] Inline images from Markdown `![alt](path)`
 
+## Icons
+
+With a Nerd Font, `:nf-<set>-<name>:` shortcodes draw as icons. Inside code they stay as written: `:nf-md-check:`.
+
+| Status | Component | Language |
+|---|---|---|
+| :nf-md-check_circle: passing | :nf-md-database: Storage | :nf-dev-rust: Rust |
+| :nf-md-alert: flaky | :nf-cod-terminal: CLI | :nf-md-language_typescript: TypeScript |
+| :nf-md-close_circle: failing | :nf-oct-git_pull_request: Review bot | :nf-md-language_python: Python |
+
 ## Diagrams
 
 ```mermaid

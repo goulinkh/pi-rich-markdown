@@ -9,12 +9,16 @@ const tui = await import(pathToFileURL(join(pi, "node_modules/@earendil-works/pi
 const themes = await import(pathToFileURL(join(pi, "dist/modes/interactive/theme/theme.js")).href);
 const { installMarkdownRenderer } = await import("../src/markdown/install.mjs");
 const { KittyImageStore, limitsFromEnv } = await import("../src/graphics/kitty-images.mjs");
+const { installIconRenderer } = await import("../src/icons/render.mjs");
+const { iconFontFiles, iconLookup, iconsAvailable, iconStyleFromEnv } = await import("../src/icons/nerd-fonts.mjs");
 const width = Number(process.argv[2]) || process.stdout.columns || 100;
 themes.initTheme(process.env.THEME ?? "dark");
 tui.setCapabilities({ images: process.argv.includes("--no-images") ? null : "kitty", trueColor: true, hyperlinks: true });
 tui.setCellDimensions({ widthPx: 17, heightPx: 37 });
 const limits = limitsFromEnv();
 installMarkdownRenderer({ tui, getTheme: () => themes.theme, store: new KittyImageStore(limits), limits, onError: (e) => console.error("fallback:", e) });
+const icons = iconsAvailable() ? iconLookup({ files: iconFontFiles(), style: iconStyleFromEnv() }) : undefined;
+installIconRenderer({ tui, getLookup: () => icons });
 const md = new tui.Markdown(readFileSync(new URL("../src/preview.md", import.meta.url), "utf8"), 1, 1, themes.getMarkdownTheme());
 const lines = md.render(width);
 const isImage = (l) => l.includes("\x1b_G");

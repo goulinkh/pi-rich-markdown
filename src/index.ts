@@ -7,6 +7,9 @@ import { installImageBudget } from "./graphics/pi-images.mjs";
 import { cellDimensionsSource } from "./graphics/cells.mjs";
 import { installMarkdownRenderer } from "./markdown/install.mjs";
 import { renderingSection } from "./prompt.mjs";
+import { iconFontFiles, iconLookup, iconsAvailable, iconStyleFromEnv } from "./icons/nerd-fonts.mjs";
+import { installIconRenderer } from "./icons/render.mjs";
+import { createIconGuard } from "./icons/guard.mjs";
 
 const PREVIEW = "rich-markdown-preview";
 const CELLS = Symbol.for("pi-rich-markdown.cell-dimensions");
@@ -19,6 +22,8 @@ const CELLS = Symbol.for("pi-rich-markdown.cell-dimensions");
  *   whenever a block cannot be drawn.
  * - Routes every image, pi's and ours, through one store that keeps decoded
  *   image memory under budget (Rex freezes a pane past 64 MiB).
+ * - Draws :nf-…: shortcodes as Nerd Font icons on screen, and keeps them out
+ *   of files, code and other tool input.
  */
 export default function richMarkdown(pi: ExtensionAPI) {
   const limits = limitsFromEnv();
@@ -51,10 +56,34 @@ export default function richMarkdown(pi: ExtensionAPI) {
     if (ctx.mode === "tui") ui = ctx.ui;
   });
 
+  const icons = iconsAvailable();
+  let lookup: ((name: string) => string | undefined) | undefined;
+  const getLookup = () => {
+    if (!icons) return undefined;
+    if (!lookup) {
+      const style = iconStyleFromEnv();
+      try {
+        lookup = iconLookup({ files: iconFontFiles(), style });
+      } catch {
+        lookup = iconLookup({ style });
+      }
+    }
+    return lookup;
+  };
+  try {
+    installIconRenderer({ tui, getLookup });
+  } catch (error) {
+    pi.on("session_start", (_event, ctx) => ctx.ui.notify(String(error), "warning"));
+  }
+  if (icons) pi.on("tool_call", createIconGuard());
+
   // Only the interactive TUI renders any of this; print/JSON/RPC output does not.
   pi.on("before_agent_start", (event, ctx) => {
     if (ctx.mode !== "tui") return;
-    event.systemPromptOptions.sections.rendering = renderingSection({ images: tui.getCapabilities().images === "kitty" });
+    event.systemPromptOptions.sections.rendering = renderingSection({
+      images: tui.getCapabilities().images === "kitty",
+      icons,
+    });
   });
 
   pi.registerEntryRenderer(PREVIEW, (entry) => {
