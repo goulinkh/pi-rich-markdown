@@ -74,9 +74,10 @@ function draw(state, md, ctx, token, width, nextTokenType, styleContext, fallbac
     case "code":
       if (isMermaid(token) && imagesAllowed(ctx) && isClosedFence(token)) {
         try {
+          const { svg, grow } = mermaidSvg(token.text, ctx.theme);
           return imageLines(md, ctx, {
-            kind: "mermaid", source: token.text, svg: mermaidSvg(token.text, ctx.theme),
-            maxColumns: width, maxRows: 40, nextTokenType, scale: cssToDevice(ctx.cell),
+            kind: "mermaid", source: token.text, svg,
+            maxColumns: width, maxRows: 40, nextTokenType, scale: cssToDevice(ctx.cell) * grow,
           });
         } catch (error) {
           state.onError(error, token);

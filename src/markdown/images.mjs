@@ -3,7 +3,6 @@
 // image. Anything that fails falls back to text.
 
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { renderMermaidSVG } from "beautiful-mermaid";
 import { planImage } from "../graphics/kitty-images.mjs";
@@ -11,12 +10,9 @@ import { rasterizeSvg, svgNaturalSize } from "../graphics/rasterize.mjs";
 import { resolveSvgCss } from "../graphics/svg-css.mjs";
 import { addCard, diagramColors, haloText, strengthenStrokes } from "../graphics/diagram-theme.mjs";
 import { colorHex, spacing } from "./style.mjs";
+import { diagramFont, fitText, useFont } from "./diagram-font.mjs";
 
 const require = createRequire(import.meta.url);
-const HELVETICA = "/System/Library/Fonts/HelveticaNeue.ttc";
-const FONT = existsSync(HELVETICA)
-  ? { fontFiles: [HELVETICA], defaultFontFamily: "Helvetica Neue" }
-  : { defaultFontFamily: "sans-serif" };
 
 /** SVG cache: building an SVG (layout, typesetting) costs far more than looking it up. */
 const svgCache = new Map();
@@ -50,9 +46,14 @@ function palette(theme) {
   };
 }
 
-export function mermaidSvg(source, theme) {
+/**
+ * Mermaid → SVG in the theme's colors and the terminal's font. Returns
+ * { svg, grow }: draw it `grow` times larger to keep its text at the
+ * intended size (see fitText).
+ */
+export function mermaidSvg(source, theme, font = diagramFont()) {
   const p = palette(theme);
-  return cachedSvg(`mermaid\0${p.panel}${p.text}${p.accent}\0${source}`, () => {
+  return cachedSvg(`mermaid\0${font.family}\0${p.panel}${p.text}${p.accent}\0${source}`, () => {
     const c = diagramColors({ background: p.panel, foreground: p.text, accent: p.accent });
     let svg = renderMermaidSVG(source, {
       bg: c.bg, fg: c.fg, accent: c.accent, line: c.line, muted: c.muted, surface: c.surface, border: c.border, transparent: true,
@@ -61,8 +62,8 @@ export function mermaidSvg(source, theme) {
       .replace(/(--_inner-stroke:\s*)[^;]+;/, `$1${c.innerStroke};`)
       .replace(/(--_key-badge:\s*)[^;]+;/, `$1${c.keyBadge};`);
     svg = resolveSvgCss(svg, { "--bg": c.bg, "--fg": c.fg, "--accent": c.accent, "--line": c.line, "--muted": c.muted, "--surface": c.surface, "--border": c.border });
-    if (FONT.fontFiles) svg = svg.replace(/'Inter', system-ui, sans-serif/g, "'Helvetica Neue', sans-serif");
-    return addCard(haloText(strengthenStrokes(svg), c.card, { labelFill: c.muted }), c.card);
+    const fitted = fitText(useFont(svg, font.family), font.advance);
+    return { svg: addCard(haloText(strengthenStrokes(fitted.svg), c.card, { labelFill: c.muted }), c.card), grow: fitted.grow };
   });
 }
 
@@ -103,8 +104,9 @@ export function mathSvg(tex, theme, exPx) {
 }
 
 /**
- * Lines for an image block: rows-1 blank lines, then the image drawn from the
- * last line upward (the way pi's Image component places images).
+ * Lines for an image block, laid out like pi's Image component: the image on
+ * the first line (C=1 keeps the cursor in place), then rows-1 blank lines that
+ * reserve its height. pi's renderer pre-clears those rows before drawing.
  */
 export function imageLines(md, ctx, { kind, source, svg, maxColumns, maxRows, nextTokenType, center = false, scale = 1 }) {
   const { store, limits, cell } = ctx;
@@ -112,10 +114,11 @@ export function imageLines(md, ctx, { kind, source, svg, maxColumns, maxRows, ne
   if (!size) throw new Error("SVG without a size");
   const natural = { widthPx: size.widthPx * scale, heightPx: size.heightPx * scale };
   const plan = planImage({ natural, maxColumns, maxRows, cell, density: limits.density, maxImageBytes: limits.maxImageBytes });
-  const sequence = store.image(ownerKey(md, kind, source), plan, (p) => rasterizeSvg(svg, { ...p, ...FONT }));
+  const font = diagramFont();
+  const fonts = font.fontFiles ? { fontFiles: font.fontFiles, defaultFontFamily: font.family } : { defaultFontFamily: font.family };
+  const sequence = store.image(ownerKey(md, kind, source), plan, (p) => rasterizeSvg(svg, { ...p, ...fonts }));
   const indent = " ".repeat(md.paddingX + (center ? Math.max(0, (maxColumns - plan.columns) >> 1) : 0));
-  const up = plan.rows > 1 ? `\x1b[${plan.rows - 1}A` : "";
-  return [...Array.from({ length: plan.rows - 1 }, () => ""), indent + up + sequence, ...spacing(nextTokenType)];
+  return [indent + sequence, ...Array.from({ length: plan.rows - 1 }, () => ""), ...spacing(nextTokenType)];
 }
 
 /**

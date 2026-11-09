@@ -98,13 +98,15 @@ test("lists use round bullets and check boxes", () => {
   assert.deepEqual(out.slice(0, 4), ["• one", "    ◦ nested", "✔ done", "☐ todo"]);
 });
 
-test("a closed Mermaid block becomes an image filling its reserved rows", () => {
+test("a closed Mermaid block is an image on its first line, then blank rows for its height", () => {
   const out = render("```mermaid\ngraph LR\n  A --> B\n```\n\nafter", 80);
   const at = out.findIndex(isImage);
-  assert.ok(at > 0);
+  assert.ok(at >= 0);
   const rows = Number(/,r=(\d+)/.exec(out[at])![1]);
-  assert.equal(at, rows - 1, "rows-1 blank lines, then the image drawn upward");
-  assert.match(out[at], new RegExp(`\\x1b\\[${rows - 1}A\\x1b_G`));
+  assert.doesNotMatch(out[at], /\x1b\[\d+[AB]/, "no cursor movement: pi's renderer keeps its own row count");
+  assert.match(out[at], /C=1/);
+  for (const l of out.slice(at + 1, at + rows)) assert.equal(l.trim(), "");
+  assert.ok(plain(out).slice(at + rows).some((l) => l === "after"));
 });
 
 test("a Mermaid block still streaming stays a code panel", () => {
