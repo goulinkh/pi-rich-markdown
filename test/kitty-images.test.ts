@@ -152,7 +152,7 @@ test("the Rex incident: 19 diagram images stay under budget", () => {
     peak = Math.max(peak, store.stats.totalBytes);
   });
   assert.ok(peak <= limits.budgetBytes, `peak ${peak / MiB} MiB`);
-  assert.ok(limits.budgetBytes < 64 * MiB / 2, "leaves room for pi's own images");
+  assert.ok(limits.budgetBytes <= 64 * MiB / 2, "at most half of Rex's limit");
 });
 
 test("limits can be tuned from the environment", () => {

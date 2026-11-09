@@ -53,8 +53,8 @@ This extension routes every image through one store, pi's own included
 
 | Environment variable | Default | Meaning |
 |---|---:|---|
-| `PI_RICH_MARKDOWN_IMAGE_BUDGET_MB` | 24 | Total decoded image memory |
-| `PI_RICH_MARKDOWN_IMAGE_MAX_MB` | 6 | Largest single image; bigger ones are drawn at a lower resolution |
+| `PI_RICH_MARKDOWN_IMAGE_BUDGET_MB` | 32 | Total decoded image memory |
+| `PI_RICH_MARKDOWN_IMAGE_MAX_MB` | 16 | Largest single image; bigger ones are drawn at a lower resolution |
 | `PI_RICH_MARKDOWN_IMAGE_DENSITY` | 1 | Pixels per reported cell pixel |
 
 ## How it works

@@ -28,13 +28,15 @@ const CHUNK = 4096;
 export const BUDGET_BYTES_PER_PIXEL = 4;
 
 /**
- * Defaults leave a wide margin under Rex's 64 MiB per-terminal limit.
+ * Defaults stay at half of Rex's 64 MiB per-terminal limit. 16 MiB per image
+ * draws a full-width diagram (100 columns x 40 rows of 17x37 cells, 10 MiB)
+ * at full resolution, with room for wider panes.
  * Density 1: Rex, Ghostty and Kitty report cell sizes in device pixels
  * (17x37 on a Retina Mac), so the cell box is already full resolution.
  */
 export const DEFAULTS = {
-  budgetBytes: 24 * MiB,
-  maxImageBytes: 6 * MiB,
+  budgetBytes: 32 * MiB,
+  maxImageBytes: 16 * MiB,
   density: 1,
 };
 
