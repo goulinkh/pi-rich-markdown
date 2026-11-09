@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { fitText, useFont } from "../src/markdown/diagram-font.mjs";
+import { BUNDLED_FONT, diagramFont, fitText, useFont } from "../src/markdown/diagram-font.mjs";
 import { fontFamilies, terminalFontFamily } from "../src/graphics/terminal-font.mjs";
 
 const box = (width: number, label: string) =>
@@ -48,4 +48,11 @@ test("Rex's font comes from its preferences; the environment overrides it", () =
 
 test("family names are read from TrueType collections", { skip: !existsSync("/System/Library/Fonts/HelveticaNeue.ttc") }, () => {
   assert.deepEqual(fontFamilies("/System/Library/Fonts/HelveticaNeue.ttc"), ["Helvetica Neue"]);
+});
+
+test("without the terminal's font, diagrams use the bundled monospace font", () => {
+  const font = diagramFont({ env: {}, platform: "linux" });
+  assert.equal(font.family, "Maple Mono");
+  assert.deepEqual(font.fontFiles, BUNDLED_FONT.fontFiles);
+  assert.ok(font.advance > 0.5 && font.advance < 0.7, `monospace advance ${font.advance}`);
 });

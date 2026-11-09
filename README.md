@@ -15,7 +15,10 @@ Answers render with their structure, not their syntax:
 - **Lists** with round bullets and check boxes for task items.
 - **Mermaid diagrams** and **display math** (`$$ … $$`) drawn as images on
   terminals with Kitty graphics (Kitty, Ghostty, Rex, WezTerm), coloured
-  from your pi theme. Elsewhere they stay text.
+  from your pi theme. Elsewhere they stay text. Diagram text uses your
+  terminal's font when it can be found (Rex, or `PI_RICH_MARKDOWN_FONT`
+  naming an installed font), and the bundled Maple Mono otherwise, so
+  diagrams have text over SSH and on machines without fonts.
 
 Run `/md-preview` to see a sample document. It is added to the transcript
 only and never sent to the model.
@@ -70,6 +73,12 @@ Each block renderer falls back to pi's own rendering when it cannot draw a
 block, and the extension keeps pi's renderer entirely if the methods it
 needs are missing. It relies on pi internals and is tested against pi
 1.5.0; a pi update can change them.
+
+## Licenses
+
+The code is MIT. The bundled Maple Mono fonts in `src/fonts` are © The
+Maple Mono Project Authors under the SIL Open Font License 1.1
+(`src/fonts/OFL.txt`).
 
 ## Development
 

@@ -8,28 +8,40 @@
 // back to the terminal's text size.
 
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
 import { findFontFiles, terminalFontFamily } from "../graphics/terminal-font.mjs";
 
-const HELVETICA = "/System/Library/Fonts/HelveticaNeue.ttc";
+// Shipped with the package (SIL OFL 1.1, see src/fonts/OFL.txt) so diagrams
+// have text on any machine: over SSH, in containers, on systems with no
+// fonts at all. One file per weight: resvg ignores variable-font axes.
+// beautiful-mermaid uses 400 to 700.
+export const BUNDLED_FONT = {
+  family: "Maple Mono",
+  fontFiles: ["Regular", "Medium", "SemiBold", "Bold"].map((w) => fileURLToPath(new URL(`../fonts/MapleMono-${w}.ttf`, import.meta.url))),
+};
 const UNUSED_WEIGHTS = /thin|hairline|light|extrabold|ultrabold|black|heavy/i;
 const MIN_FIT = 0.6;
 
 let cached;
 
 /**
- * The font for diagram text: { family, fontFiles?, advance? }. `advance` is
- * the width of one character in em for a monospace font, measured once.
+ * The font for diagram text: { family, fontFiles?, advance? }. The
+ * terminal's font when it is installed here, else the bundled Maple Mono;
+ * never the system fonts, which may not exist and are slow to scan.
+ * `advance` is the width of one character in em for a monospace font,
+ * measured once.
  */
 export function diagramFont(options) {
   if (cached && !options) return cached;
   const family = terminalFontFamily(options);
   const files = family ? findFontFiles(family) : [];
   const used = files.filter((f) => !UNUSED_WEIGHTS.test(f.split("/").pop()));
+  const bundled = BUNDLED_FONT.fontFiles.filter((f) => existsSync(f));
   const font = files.length
     ? { family, fontFiles: used.length ? used : files }
-    : existsSync(HELVETICA) ? { family: "Helvetica Neue", fontFiles: [HELVETICA] } : { family: "sans-serif" };
-  font.advance = font.fontFiles && family === font.family ? monospaceAdvance(font) : undefined;
+    : bundled.length ? { family: BUNDLED_FONT.family, fontFiles: bundled } : { family: "sans-serif" };
+  font.advance = font.fontFiles ? monospaceAdvance(font) : undefined;
   if (!options) cached = font;
   return font;
 }
