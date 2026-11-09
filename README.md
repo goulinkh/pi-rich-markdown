@@ -84,7 +84,10 @@ copies the Markdown behind the selection instead:
 - One whole block copies its source.
 - Lines inside a code panel copy as the code itself, unwrapped and without
   the fence, ready to paste into a shell.
-- Part of a table, diagram or formula copies the whole block.
+- A selection inside one table cell copies that cell's value, unwrapped and
+  without its Markdown (a `` `password` `` pastes without backticks); a few
+  characters of it copy as selected. A selection across cells, like part of
+  a diagram or formula, copies the whole block.
 - Part of a paragraph (a double-clicked word) copies as pi copies it.
 - Tool output and other text outside Markdown copies as before.
 - Icons stay on screen: drawn `:nf-…:` shortcodes are left out of the copy.

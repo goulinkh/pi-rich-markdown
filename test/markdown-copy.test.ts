@@ -29,11 +29,24 @@ const ANSWER = [
   "```",
 ].join("\n");
 
+const SECRET = "pX7-kQ2_vR9.mZ4!wL8-tH3_nB6.yC1!fD5-gJ0_sK2.aE7!uM9";
+const CREDENTIALS = [
+  "**Alice's login:**",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| Username | `alice` |",
+  `| Password | \`${SECRET}\` |`,
+  "| Note | throwaway sandbox password |",
+  "",
+  "Done.",
+].join("\n");
+
 /** A transcript like pi's: a tool line, an assistant Markdown, another tool line. */
-function transcript(width = 60) {
+function transcript(width = 60, answer = ANSWER) {
   const root = new tui.Container();
   root.addChild(new tui.Text("$ npm test  (tool output)", 1, 0));
-  const md = new tui.Markdown(ANSWER, 1, 0, themes.getMarkdownTheme());
+  const md = new tui.Markdown(answer, 1, 0, themes.getMarkdownTheme());
   root.addChild(md);
   root.addChild(new tui.Text("done in 3s", 1, 0));
   const lines = root.render(width);
@@ -106,9 +119,37 @@ describe("copy as Markdown", () => {
     assert.equal(t.select(t.rowOf("plan"), 0, t.rowOf("plan"), 60), "Here is the **plan** with `code`.");
   });
 
-  test("part of a table copies the whole table", () => {
+  test("cells of more than one column copy the whole table", () => {
     const t = transcript();
-    assert.equal(t.select(t.rowOf("Build"), 3, t.rowOf("Build"), 6), "| Step | Owner |\n|---|---|\n| Build | ci |\n| Ship | me |");
+    const row = t.rowOf("Build");
+    assert.equal(t.select(row, 3, row, t.plain[row].indexOf("ci") + 1), "| Step | Owner |\n|---|---|\n| Build | ci |\n| Ship | me |");
+  });
+
+  test("part of a table cell copies as selected", () => {
+    const t = transcript();
+    const row = t.rowOf("Build");
+    const col = t.plain[row].indexOf("Build");
+    assert.equal(t.select(row, col + 1, row, col + 3), "uil");
+  });
+
+  test("a whole table cell copies its value without Markdown", () => {
+    const t = transcript(120, CREDENTIALS);
+    const row = t.rowOf("Password");
+    const col = t.plain[row].indexOf(SECRET);
+    assert.equal(t.select(row, col, row, col + SECRET.length - 1), SECRET);
+    // Dragging past the cell into the blank margin still copies the cell alone.
+    assert.equal(t.select(row, col - 2, row, 119), SECRET);
+  });
+
+  test("a wrapped table cell copies as one value", () => {
+    const t = transcript(50, CREDENTIALS);
+    const start = t.rowOf("Password");
+    const col = t.plain[start].indexOf(SECRET.slice(0, 5));
+    assert.ok(col > 0, t.plain.join("\n"));
+    const rows = t.plain.slice(start).findIndex((l: string, i: number) => i > 0 && !l.trim());
+    const end = start + rows - 1;
+    assert.ok(end > start, "the secret wraps");
+    assert.equal(t.select(start, col, end, 49), SECRET);
   });
 
   test("rows outside Markdown copy as plain text around the source", () => {
