@@ -107,8 +107,7 @@ export function mathSvg(tex, theme, exPx) {
  * last line upward (the way pi's Image component places images).
  */
 export function imageLines(md, ctx, { kind, source, svg, maxColumns, maxRows, nextTokenType, center = false, scale = 1 }) {
-  const { tui, store, limits } = ctx;
-  const cell = tui.getCellDimensions();
+  const { store, limits, cell } = ctx;
   const size = svgNaturalSize(svg);
   if (!size) throw new Error("SVG without a size");
   const natural = { widthPx: size.widthPx * scale, heightPx: size.heightPx * scale };
@@ -123,11 +122,11 @@ export function imageLines(md, ctx, { kind, source, svg, maxColumns, maxRows, ne
  * Scale from CSS pixels (diagram SVGs) to the terminal's device pixels, so
  * diagram text comes out the size of terminal text: a CSS line is ~18px tall.
  */
-export function cssToDevice(tui) {
-  return Math.max(1, tui.getCellDimensions().heightPx / 18);
+export function cssToDevice(cell) {
+  return Math.max(1, cell.heightPx / 18);
 }
 
 /** x-height of the terminal font in device pixels (cells are about 2.1 x-heights tall). */
-export function terminalExPx(tui) {
-  return tui.getCellDimensions().heightPx * 0.47;
+export function terminalExPx(cell) {
+  return cell.heightPx * 0.47;
 }

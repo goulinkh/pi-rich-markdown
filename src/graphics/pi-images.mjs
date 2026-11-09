@@ -23,15 +23,15 @@ let owners = 0;
  * of it used here); `store` is a KittyImageStore; `limits` comes from
  * limitsFromEnv(). Returns a function that restores the original render.
  */
-export function installImageBudget({ tui, store, limits }) {
+export function installImageBudget({ tui, store, limits, getCellDimensions = tui.getCellDimensions }) {
   const proto = tui.Image.prototype;
   if (proto.render[PATCHED]) {
     // /reload: keep the original, swap in the latest store and limits.
-    Object.assign(proto.render[PATCHED], { store, limits });
+    Object.assign(proto.render[PATCHED], { store, limits, getCellDimensions });
     return proto.render[PATCHED].restore;
   }
   const original = proto.render;
-  const state = { store, limits, restore: () => { proto.render = original; } };
+  const state = { store, limits, getCellDimensions, restore: () => { proto.render = original; } };
 
   function render(width) {
     if (tui.getCapabilities().images !== "kitty") return original.call(this, width);
@@ -39,7 +39,7 @@ export function installImageBudget({ tui, store, limits }) {
 
     // Same box pi would use (components/image.js).
     const maxColumns = Math.max(1, Math.min(width - 2, this.options.maxWidthCells ?? 60));
-    const cell = tui.getCellDimensions();
+    const cell = state.getCellDimensions();
     const maxRows = this.options.maxHeightCells ?? Math.max(1, Math.ceil((maxColumns * cell.widthPx) / cell.heightPx));
 
     let lines;

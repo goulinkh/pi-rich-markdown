@@ -4,9 +4,11 @@ import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import * as tui from "@earendil-works/pi-tui";
 import { limitsFromEnv, sharedImageStore } from "./graphics/kitty-images.mjs";
 import { installImageBudget } from "./graphics/pi-images.mjs";
+import { cellDimensionsSource } from "./graphics/cells.mjs";
 import { installMarkdownRenderer } from "./markdown/install.mjs";
 
 const PREVIEW = "rich-markdown-preview";
+const CELLS = Symbol.for("pi-rich-markdown.cell-dimensions");
 
 /**
  * pi-rich-markdown: terminal-native Markdown for pi.
@@ -20,7 +22,10 @@ const PREVIEW = "rich-markdown-preview";
 export default function richMarkdown(pi: ExtensionAPI) {
   const limits = limitsFromEnv();
   const store = sharedImageStore({ budgetBytes: limits.budgetBytes, maxImageBytes: limits.maxImageBytes });
-  installImageBudget({ tui, store, limits });
+  // One source per process: /reload must not add another resize listener.
+  const shared = globalThis as { [CELLS]?: () => { widthPx: number; heightPx: number } };
+  const getCellDimensions = (shared[CELLS] ??= cellDimensionsSource(tui));
+  installImageBudget({ tui, store, limits, getCellDimensions });
 
   let ui: ExtensionUIContext | undefined;
   let warned = false;
@@ -29,6 +34,7 @@ export default function richMarkdown(pi: ExtensionAPI) {
       tui,
       store,
       limits,
+      getCellDimensions,
       getTheme: () => ui?.theme,
       onError: (error: unknown) => {
         if (warned) return;

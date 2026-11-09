@@ -18,17 +18,17 @@ const REQUIRED = ["renderToken", "renderInlineTokens", "wrapCellText", "getStyle
  * the session starts; until then pi renders as usual.
  * Returns a function that restores pi's renderer.
  */
-export function installMarkdownRenderer({ tui, getTheme, store, limits, onError = () => {} }) {
+export function installMarkdownRenderer({ tui, getTheme, store, limits, onError = () => {}, getCellDimensions = tui.getCellDimensions }) {
   const proto = tui.Markdown.prototype;
   const missing = REQUIRED.filter((name) => typeof proto[name] !== "function");
   if (missing.length) throw new Error(`pi's Markdown component changed (missing ${missing.join(", ")}); keeping pi's renderer`);
 
   if (proto.renderToken[PATCHED]) {
-    Object.assign(proto.renderToken[PATCHED], { getTheme, store, limits, onError });
+    Object.assign(proto.renderToken[PATCHED], { getTheme, store, limits, onError, getCellDimensions });
     return proto.renderToken[PATCHED].restore;
   }
   const original = proto.renderToken;
-  const state = { getTheme, store, limits, onError, depth: 0, restore: () => { proto.renderToken = original; } };
+  const state = { getTheme, store, limits, onError, getCellDimensions, depth: 0, restore: () => { proto.renderToken = original; } };
 
   function renderToken(token, width, nextTokenType, styleContext) {
     const fallback = () => original.call(this, token, width, nextTokenType, styleContext);
@@ -39,6 +39,7 @@ export function installMarkdownRenderer({ tui, getTheme, store, limits, onError 
       theme,
       store: state.store,
       limits: state.limits,
+      cell: state.getCellDimensions(),
       visibleWidth: tui.visibleWidth,
       wrap: (text, w) => tui.wrapTextWithAnsi(text, Math.max(1, w)),
       truncate: (text, w) => tui.truncateToWidth(text, w),
@@ -75,7 +76,7 @@ function draw(state, md, ctx, token, width, nextTokenType, styleContext, fallbac
         try {
           return imageLines(md, ctx, {
             kind: "mermaid", source: token.text, svg: mermaidSvg(token.text, ctx.theme),
-            maxColumns: width, maxRows: 40, nextTokenType, scale: cssToDevice(ctx.tui),
+            maxColumns: width, maxRows: 40, nextTokenType, scale: cssToDevice(ctx.cell),
           });
         } catch (error) {
           state.onError(error, token);
@@ -86,7 +87,7 @@ function draw(state, md, ctx, token, width, nextTokenType, styleContext, fallbac
       if (!token.pending && imagesAllowed(ctx)) {
         try {
           return imageLines(md, ctx, {
-            kind: "math", source: token.text, svg: mathSvg(token.text, ctx.theme, terminalExPx(ctx.tui) * 1.15),
+            kind: "math", source: token.text, svg: mathSvg(token.text, ctx.theme, terminalExPx(ctx.cell) * 1.15),
             maxColumns: width, maxRows: 12, nextTokenType, center: true,
           });
         } catch {
