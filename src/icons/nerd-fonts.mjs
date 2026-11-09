@@ -122,6 +122,19 @@ export function iconLookup({ files = [], style = "as-written" } = {}) {
 }
 
 /** Replace every known shortcode in plain text; unknown names stay as written. */
+/**
+ * Markdown without the shortcodes `lookup` draws as icons, for text that
+ * leaves the terminal (a copied selection). Code and unknown names stay.
+ */
+export function stripIcons(text, lookup, codeRanges = []) {
+  if (!text.includes(":nf-")) return text;
+  const inCode = (i) => codeRanges.some(([s, e]) => i >= s && i < e);
+  return text.replace(/( ?):nf-([a-z]+-[a-z0-9_]+):( ?)/g, (match, before, name, after, at) => {
+    if (inCode(at + before.length) || !lookup(name)) return match;
+    return before && after ? " " : "";
+  });
+}
+
 export function iconize(text, lookup) {
   if (!text.includes(":nf-")) return text;
   return text.replace(SHORTCODE, (match, name) => lookup(name) ?? match);

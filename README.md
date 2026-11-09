@@ -67,6 +67,28 @@ fallback) and for any terminal font whose name contains "Nerd" or "NF".
 `PI_RICH_MARKDOWN_ICONS=1` or `0` overrides the detection. The name table
 is Nerd Fonts 3.5.1; `node scripts/update-icons.mjs` refreshes it.
 
+## Copying as Markdown
+
+In fullscreen mode (`tuiMode: "fullscreen"`, pi's default), pi owns mouse
+selection and copies the text it drew: a table as aligned columns, a code
+panel with its padding, a diagram or formula as blank lines. This extension
+copies the Markdown behind the selection instead:
+
+- A selection across several blocks copies their source: `**bold**`,
+  `| tables |`, fenced code, ```` ```mermaid ```` diagrams, `$$` math,
+  `> [!TIP]` callouts.
+- One whole block copies its source.
+- Lines inside a code panel copy as the code itself, unwrapped and without
+  the fence, ready to paste into a shell.
+- Part of a table, diagram or formula copies the whole block.
+- Part of a paragraph (a double-clicked word) copies as pi copies it.
+- Tool output and other text outside Markdown copies as before.
+- Icons stay on screen: drawn `:nf-…:` shortcodes are left out of the copy.
+
+`PI_RICH_MARKDOWN_COPY=0` turns this off. In regular mode the terminal
+does the selecting and only knows the characters on screen; use `/copy` or
+`Ctrl+X` there for the last answer's Markdown.
+
 ## Image memory
 
 Terminals keep every image decoded in memory for as long as it is on screen
@@ -101,7 +123,8 @@ pi has no API for replacing its Markdown renderer; its Markdown transformer
 hook can only rewrite the text before pi draws it. Extensions share pi's
 `@earendil-works/pi-tui` module, so this extension replaces
 `Markdown.prototype.renderToken`, `Markdown.prototype.renderInlineTokens`
-(icons) and `Image.prototype.render` directly.
+(icons), `Image.prototype.render` and
+`TuiAltScreen.prototype.getActiveSelectionText` (copying) directly.
 That reaches every Markdown surface: assistant and user messages, thinking,
 summaries.
 

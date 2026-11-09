@@ -7,9 +7,9 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { iconize, iconLookup, iconNames, iconsAvailable, iconStyleFromEnv, styledNames } from "../src/icons/nerd-fonts.mjs";
+import { iconize, iconLookup, iconNames, iconsAvailable, iconStyleFromEnv, styledNames, stripIcons } from "../src/icons/nerd-fonts.mjs";
 import { installIconRenderer } from "../src/icons/render.mjs";
-import { createIconGuard, iconShortcodes, shortcodesAdded } from "../src/icons/guard.mjs";
+import { createIconGuard, iconShortcodes, shortcodesAdded, markdownCodeRanges } from "../src/icons/guard.mjs";
 import { fontCoverage } from "../src/graphics/terminal-font.mjs";
 import { installMarkdownRenderer } from "../src/markdown/install.mjs";
 import { KittyImageStore, limitsFromEnv } from "../src/graphics/kitty-images.mjs";
@@ -166,4 +166,19 @@ test("the prompt mentions icons only when the terminal can draw them", () => {
   assert.match(text, /:nf-md-check_circle:/);
   assert.match(text, /never in files/);
   assert.ok(text.length < 900, `short: ${text.length} chars`);
+});
+
+describe("copying", () => {
+  const lookup = (name: string) => (name === "md-check" || name === "md-alert" ? "\u{F012C}" : undefined);
+  test("drawn icons leave copied Markdown, with their spacing", () => {
+    assert.equal(stripIcons(":nf-md-check: passing, :nf-md-alert: flaky", lookup), "passing, flaky");
+    assert.equal(stripIcons("Done :nf-md-check:", lookup), "Done");
+    assert.equal(stripIcons("a :nf-md-check: b", lookup), "a b");
+    assert.equal(stripIcons("| :nf-md-check: ok |", lookup), "| ok |");
+  });
+  test("unknown names and code stay as written", () => {
+    assert.equal(stripIcons("say :nf-md-nope: here", lookup), "say :nf-md-nope: here");
+    const text = "Use `:nf-md-check:` like :nf-md-check: this";
+    assert.equal(stripIcons(text, lookup, markdownCodeRanges(text)), "Use `:nf-md-check:` like this");
+  });
 });
