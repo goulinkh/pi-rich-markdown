@@ -6,6 +6,7 @@ import { limitsFromEnv, sharedImageStore } from "./graphics/kitty-images.mjs";
 import { installImageBudget } from "./graphics/pi-images.mjs";
 import { cellDimensionsSource } from "./graphics/cells.mjs";
 import { installMarkdownRenderer } from "./markdown/install.mjs";
+import { renderingSection } from "./prompt.mjs";
 
 const PREVIEW = "rich-markdown-preview";
 const CELLS = Symbol.for("pi-rich-markdown.cell-dimensions");
@@ -48,6 +49,12 @@ export default function richMarkdown(pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     if (ctx.mode === "tui") ui = ctx.ui;
+  });
+
+  // Only the interactive TUI renders any of this; print/JSON/RPC output does not.
+  pi.on("before_agent_start", (event, ctx) => {
+    if (ctx.mode !== "tui") return;
+    event.systemPromptOptions.sections.rendering = renderingSection({ images: tui.getCapabilities().images === "kitty" });
   });
 
   pi.registerEntryRenderer(PREVIEW, (entry) => {
