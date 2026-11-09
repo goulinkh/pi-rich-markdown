@@ -1,0 +1,46 @@
+{
+  "name": "pi-rich-markdown",
+  "version": "0.1.0",
+  "description": "Terminal-native Markdown for pi: borderless tables, code panels, callouts, Mermaid diagrams and typeset math as Kitty images, inside a fixed image-memory budget.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Goulin Khoge",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goulinkh/pi-rich-markdown.git"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "markdown",
+    "kitty-graphics",
+    "mermaid",
+    "mathjax"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "preview": "node scripts/render-preview.mjs"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=1.5.0",
+    "@earendil-works/pi-tui": ">=1.5.0"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "beautiful-mermaid": "^1.1.3",
+    "mathjax-full": "^3.2.1"
+  }
+}
