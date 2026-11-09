@@ -5,6 +5,8 @@ import * as tui from "@earendil-works/pi-tui";
 import { limitsFromEnv, sharedImageStore } from "./graphics/kitty-images.mjs";
 import { piImageRegistrar } from "./graphics/pi-registry.mjs";
 import { installOverlayImageClip } from "./graphics/overlays.mjs";
+import { installCodeSpanLinks, installTextLinks } from "./links/linkify.mjs";
+import { installScreenLinks } from "./links/screen-links.mjs";
 import { installImageBudget } from "./graphics/pi-images.mjs";
 import { cellDimensionsSource } from "./graphics/cells.mjs";
 import { installMarkdownRenderer } from "./markdown/install.mjs";
@@ -28,6 +30,7 @@ const CELLS = Symbol.for("pi-rich-markdown.cell-dimensions");
  * - Draws :nf-…: shortcodes as Nerd Font icons on screen, and keeps them out
  *   of files, code and other tool input.
  * - Copies fullscreen selections as the Markdown source of the blocks they cover.
+ * - Makes every printed URL a hyperlink, so wrapped URLs stay clickable.
  */
 export default function richMarkdown(pi: ExtensionAPI) {
   const limits = limitsFromEnv();
@@ -92,6 +95,18 @@ export default function richMarkdown(pi: ExtensionAPI) {
     pi.on("session_start", (_event, ctx) => ctx.ui.notify(String(error), "warning"));
   }
   if (icons) pi.on("tool_call", createIconGuard());
+
+  // Plain URLs (tool output, code) become hyperlinks, so a wrapped URL opens
+  // whole from any of its rows; Markdown links already are.
+  const hyperlinks = () => !!tui.getCapabilities().hyperlinks;
+  try {
+    installTextLinks({ tui, isEnabled: hyperlinks });
+    installCodeSpanLinks({ tui, isEnabled: hyperlinks });
+    // Dialogs that wrap text themselves (/btw) print plain URLs in pieces.
+    installScreenLinks({ tui, isEnabled: hyperlinks });
+  } catch (error) {
+    pi.on("session_start", (_event, ctx) => ctx.ui.notify(String(error), "warning"));
+  }
 
   // Fullscreen selections copy as the Markdown source of the blocks they cover.
   if (!/^(0|off|false|no)$/i.test(process.env.PI_RICH_MARKDOWN_COPY ?? "")) {

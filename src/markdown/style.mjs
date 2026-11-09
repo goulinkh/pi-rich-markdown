@@ -28,6 +28,7 @@ export function spacing(nextTokenType) {
 }
 
 const CODES = /(\x1b\[[0-9;:]*m|\x1b\]8;[^\x07\x1b]*(?:\x07|\x1b\\))/;
+const LINK_END = "\x1b]8;;\x1b\\";
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 /**
@@ -37,18 +38,22 @@ const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
  */
 export function hardWrap(text, width, visibleWidth) {
   const chunks = [];
-  let current = "", used = 0, active = [];
+  // A hyperlink is closed at the end of each chunk and re-opened at the start
+  // of the next, so every row of a wrapped URL opens the whole URL and the
+  // link never runs into what follows the chunk (padding, the next row).
+  let current = "", used = 0, active = [], link = "";
   for (const [i, part] of text.split(CODES).entries()) {
     if (i % 2) {
       current += part;
-      active = part === "\x1b[0m" || part === "\x1b[m" ? [] : [...active, part];
+      if (part.startsWith("\x1b]8;")) link = /^\x1b\]8;[^;]*;[^\x07\x1b]+/.test(part) ? part : "";
+      else active = part === "\x1b[0m" || part === "\x1b[m" ? [] : [...active, part];
       continue;
     }
     for (const { segment } of graphemes.segment(part)) {
       const w = visibleWidth(segment);
       if (used + w > width && used > 0) {
-        chunks.push(current);
-        current = active.join("");
+        chunks.push(link ? current + LINK_END : current);
+        current = active.join("") + link;
         used = 0;
       }
       current += segment;

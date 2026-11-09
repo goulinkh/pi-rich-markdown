@@ -21,6 +21,10 @@ Answers render with their structure, not their syntax:
   diagrams have text over SSH and on machines without fonts.
 - **Nerd Font icons**: the model can write `:nf-md-check_circle:` and you
   see the icon. See [Icons](#icons).
+- **Links that survive wrapping**: every URL on screen is a terminal
+  hyperlink, including in tool output, code and dialogs such as `/btw`. A
+  long URL that wraps opens in full from any of its rows. See
+  [Links](#links).
 
 Run `/md-preview` to see a sample document. It is added to the transcript
 only and never sent to the model.
@@ -89,6 +93,25 @@ copies the Markdown behind the selection instead:
 does the selecting and only knows the characters on screen; use `/copy` or
 `Ctrl+X` there for the last answer's Markdown.
 
+## Links
+
+pi makes Markdown links clickable (OSC 8 hyperlinks), and its wrapping
+re-opens a hyperlink on each row it continues on. Every other URL is plain
+text: bash and tool output, the `$ command` line, `inline code`, code
+blocks, and text that dialogs wrap themselves. In fullscreen mode pi opens
+only hyperlinks when you click, and terminals that find URLs in text look
+at one row at a time. So a plain URL that wraps opens nothing, or a
+truncated address.
+
+This extension turns those URLs into hyperlinks before the text wraps, and
+gives each wrapped row of a code block the whole URL. As a last pass on the
+fullscreen screen, it links any URL that is still plain. A URL that a dialog
+hard-wrapped across rows, filling each row to the box border, is joined back
+into one link. Sentence punctuation after a URL is left out, and URLs
+shortened with `...` stay unlinked because the address is incomplete.
+
+Nothing changes on terminals pi does not consider hyperlink-capable.
+
 ## Image memory
 
 Terminals keep every image decoded in memory for as long as it is on screen
@@ -125,9 +148,10 @@ pi has no API for replacing its Markdown renderer; its Markdown transformer
 hook can only rewrite the text before pi draws it. Extensions share pi's
 `@earendil-works/pi-tui` module, so this extension replaces
 `Markdown.prototype.renderToken`, `Markdown.prototype.renderInlineTokens`
-(icons), `Image.prototype.render`,
+(icons, links in code), `Text.prototype.render` (links in tool output),
+`Image.prototype.render`,
 `TuiAltScreen.prototype.getActiveSelectionText` (copying) and pi's
-`compositeOverlays` (dialogs over images) directly.
+`compositeOverlays` (dialogs over images, links on screen) directly.
 That reaches every Markdown surface: assistant and user messages, thinking,
 summaries.
 

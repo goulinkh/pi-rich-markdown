@@ -3,6 +3,7 @@
 // continuation mark instead of breaking the panel.
 
 import { hardWrap, keepBackground, spacing } from "./style.mjs";
+import { linkify } from "../links/linkify.mjs";
 
 const PANEL = "toolPendingBg";
 
@@ -21,7 +22,10 @@ export function renderCode(md, ctx, token, width, nextTokenType) {
   const lines = [edge("▄")];
   const lang = token.lang?.trim().split(/\s+/, 1)[0];
   if (lang) lines.push(row(theme.fg("dim", theme.italic(lang))));
-  for (const codeLine of highlighted(md, token)) {
+  const links = ctx.tui?.getCapabilities?.().hyperlinks;
+  for (const highlightedLine of highlighted(md, token)) {
+    // URLs become hyperlinks, so a wrapped one opens whole from any of its rows.
+    const codeLine = links ? linkify(highlightedLine) : highlightedLine;
     const [first, ...rest] = hardWrap(codeLine, inner, visibleWidth);
     lines.push(row(first));
     if (rest.length) {
